@@ -84,7 +84,7 @@ CREATE TABLE projects (
 	participants_count int NOT NULL,
 	participants_type mediumtext NOT NULL,
 	recuitment_method mediumtext NOT NULL,
-	date_submitted date DEFAULT CURRENT_DATE NOT NULL,
+	date_submitted DATE DEFAULT (CURRENT_DATE),
   proposal longtext NOT NULL,
 	date_approved date,
 	workflow_id int,
