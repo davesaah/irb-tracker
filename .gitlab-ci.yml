@@ -15,14 +15,14 @@ variables:
 
 gosec:
   stage: security
-  image: golang:1.24
+  image: golang:1.26
   script:
     - go install github.com/securego/gosec/v2/cmd/gosec@latest
     - gosec ./...
 
 govulncheck:
   stage: security
-  image: golang:1.24
+  image: golang:1.26
   script:
     - go install golang.org/x/vuln/cmd/govulncheck@latest
     - govulncheck ./...
@@ -42,7 +42,7 @@ gitleaks:
 test:
   stage: test
 
-  image: golang:1.24
+  image: golang:1.26
 
   services:
     - name: mysql:9.7
