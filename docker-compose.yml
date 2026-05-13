@@ -1,0 +1,6 @@
+services:
+  app:
+    image: registry.gitlab.com/davesaah/irb-tracker:${TAG}
+    ports:
+      - "42069:42069"
+    restart: always
