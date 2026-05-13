@@ -22,7 +22,7 @@ func CreateSession(u *model.User, c echo.Context) {
 	sess.Values["username"] = u.FName + " " + u.LName
 	sess.Values["type"] = u.Type
 
-	sess.Save(c.Request(), c.Response())
+	_ = sess.Save(c.Request(), c.Response())
 }
 
 // DestroySession destroys the session for the user

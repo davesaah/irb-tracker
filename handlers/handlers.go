@@ -29,6 +29,6 @@ func HomeView(c echo.Context) error {
 
 // LogoutUser logouts out a user
 func LogoutUser(c echo.Context) error {
-	helpers.DestroySession(c)
+	_ = helpers.DestroySession(c)
 	return c.Render(http.StatusOK, "home", nil)
 }
