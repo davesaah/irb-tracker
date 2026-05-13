@@ -1,0 +1,117 @@
+stages:
+  - security
+  - test
+  - build
+  - scan
+  - deploy
+
+variables:
+  IMAGE_NAME: $CI_REGISTRY_IMAGE
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+
+# -------------------------
+# SECURITY
+# -------------------------
+
+gosec:
+  stage: security
+  image: golang:1.24
+  script:
+    - go install github.com/securego/gosec/v2/cmd/gosec@latest
+    - gosec ./...
+
+govulncheck:
+  stage: security
+  image: golang:1.24
+  script:
+    - go install golang.org/x/vuln/cmd/govulncheck@latest
+    - govulncheck ./...
+
+gitleaks:
+  stage: security
+  image:
+    name: zricethezav/gitleaks:latest
+    entrypoint: [""]
+  script:
+    - gitleaks detect --source .
+
+# -------------------------
+# TEST
+# -------------------------
+
+test:
+  stage: test
+
+  image: golang:1.24
+
+  services:
+    - name: mysql:9.7
+      alias: mysql
+
+  variables:
+    MYSQL_ROOT_PASSWORD: root
+    MYSQL_DATABASE: app_test
+    MYSQL_USER: app
+    MYSQL_PASSWORD: app
+    DB_HOST: mysql
+    DB_PORT: 3306
+
+  script:
+    - apt-get update && apt-get install -y default-mysql-client
+
+    - echo "Waiting for MySQL..."
+    - until mysqladmin ping -h mysql -proot --silent; do
+        sleep 2;
+      done
+
+    - go test ./...
+
+# -------------------------
+# BUILD
+# -------------------------
+
+build:
+  stage: build
+  image: docker:latest
+
+  before_script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+
+  script:
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG .
+    - docker push $IMAGE_NAME:$IMAGE_TAG
+
+# -------------------------
+# SCAN
+# -------------------------
+
+trivy:
+  stage: scan
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+
+  script:
+    - trivy image --exit-code 1 --severity HIGH,CRITICAL $IMAGE_NAME:$IMAGE_TAG
+
+# -------------------------
+# DEPLOY
+# -------------------------
+
+deploy:
+  stage: deploy
+  only:
+    - main
+
+  image: alpine:latest
+
+  before_script:
+    - apk add --no-cache openssh-client
+
+  script:
+    - |
+      ssh deploy@server "
+        cd /srv/myapp &&
+        TAG=$CI_COMMIT_SHORT_SHA docker compose pull &&
+        TAG=$CI_COMMIT_SHORT_SHA docker compose up -d
+      "
